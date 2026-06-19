@@ -1,0 +1,45 @@
+seccomp-base.json — vendored upstream seccomp profile
+=====================================================
+
+This is the default seccomp profile from the containers/common project
+(used by Podman, Buildah and CRI-O), vendored verbatim as the base from
+which the OpenWrt container floor is rendered.
+
+Source:  https://raw.githubusercontent.com/containers/common/main/pkg/seccomp/seccomp.json
+Repo:    https://github.com/containers/common
+Path:    pkg/seccomp/seccomp.json
+Commit:  a5ccdae846b629b5ceaefa6ffd5c6511409c3487  (2025-08-27)
+Fetched: 2026-06-04
+
+The file is kept byte-for-byte as upstream so it can be diffed against a
+later upstream revision. Do NOT hand-edit it; re-fetch to update, then
+re-review seccomp-tighten.list against any new syscalls.
+
+The OpenWrt floor is NOT this file. seccomp-render.uc resolves this
+profile for a single target architecture, with an EMPTY capability set
+(the floor drops all capabilities), and then removes the syscalls listed
+in seccomp-tighten.list before emitting the ujail-consumable OCI seccomp
+object. The tightening is the security delta; this file is only the
+starting point.
+
+License
+-------
+
+containers/common is licensed under the Apache License, Version 2.0.
+
+    Copyright The containers/common Authors.
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+    implied. See the License for the specific language governing
+    permissions and limitations under the License.
+
+The full Apache-2.0 text is available at the URL above and in the
+upstream repository's LICENSE file.

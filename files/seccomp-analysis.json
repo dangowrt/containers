@@ -1,0 +1,1046 @@
+{
+ "syscalls": 385,
+ "danger_scored": 384,
+ "runtimes": 12,
+ "synthesis": {
+  "decisions": [
+   {
+    "name": "finit_module",
+    "danger": 5,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Full host code-exec primitive (load module from fd). danger 5, no runtime allows unconditionally."
+   },
+   {
+    "name": "init_module",
+    "danger": 5,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Canonical full-host-compromise primitive. Must never be allowed."
+   },
+   {
+    "name": "create_module",
+    "danger": 1,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Legacy module loader; ENOSYS but every runtime drops it. Module family."
+   },
+   {
+    "name": "delete_module",
+    "danger": 1,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Module unload; CAP_SYS_MODULE in init_ns. Floor never loads/unloads modules."
+   },
+   {
+    "name": "query_module",
+    "danger": 0,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Legacy module query, ENOSYS; dropped by consensus, dead surface."
+   },
+   {
+    "name": "get_kernel_syms",
+    "danger": 0,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Obsolete module-symbol query; not allowlisted anywhere."
+   },
+   {
+    "name": "bpf",
+    "danger": 4,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Top kernel LPE source (verifier CVEs). danger 4, cap-gated/denied by all. Re-grant via CONTAINER_SECCOMP_ALLOW."
+   },
+   {
+    "name": "perf_event_open",
+    "danger": 4,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Huge bug-rich PMU/kprobe surface; cap-gated by all runtimes, blocked by sandboxes."
+   },
+   {
+    "name": "kexec_load",
+    "danger": 2,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Full host takeover; never on any allowlist. Hard deny."
+   },
+   {
+    "name": "kexec_file_load",
+    "danger": 2,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "fd-based kexec; never allowlisted. Hard deny."
+   },
+   {
+    "name": "reboot",
+    "danger": 2,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Host-fatal; CAP_SYS_BOOT init-ns gated; container never reboots host."
+   },
+   {
+    "name": "io_uring_setup",
+    "danger": 4,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Gateway to io_uring complex; CVE-dense, widely disabled (Podman/CRI-O drop the family). need rare."
+   },
+   {
+    "name": "io_uring_enter",
+    "danger": 4,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Drives async I/O/splice/openat ring; top recent LPE source. Drop with the family."
+   },
+   {
+    "name": "io_uring_register",
+    "danger": 4,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Fixed-buffer OOB CVEs; high-value primitive. Drop with the family."
+   },
+   {
+    "name": "ioctl",
+    "danger": 4,
+    "runtimes_allowing": 8,
+    "decision": "allow",
+    "rationale": "danger 4 but need=common and ubiquitously allowed (every runtime). Cannot wholesale-deny without breaking apps; risk is fd-dependent. Kept."
+   },
+   {
+    "name": "open_by_handle_at",
+    "danger": 4,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Shocker host-fs escape via raw handle; cap-gated, need none. Hard deny."
+   },
+   {
+    "name": "name_to_handle_at",
+    "danger": 2,
+    "runtimes_allowing": 7,
+    "decision": "deny",
+    "rationale": "Handle-forging half of Shocker; harmless alone but dropped as a pair with open_by_handle_at. Floor tightens beyond Docker here."
+   },
+   {
+    "name": "keyctl",
+    "danger": 3,
+    "runtimes_allowing": 4,
+    "decision": "deny",
+    "rationale": "Long unpriv-reachable keyring CVE history; host keyring is shared. containerd/CRI-O-lineage and sandboxes drop it; apps don't need it."
+   },
+   {
+    "name": "add_key",
+    "danger": 2,
+    "runtimes_allowing": 3,
+    "decision": "deny",
+    "rationale": "Keyring write into shared host keyring; Podman/containerd drop key-creation. Floor denies."
+   },
+   {
+    "name": "request_key",
+    "danger": 2,
+    "runtimes_allowing": 4,
+    "decision": "deny",
+    "rationale": "Keyring lookup w/ host upcall surface; keyring CVEs. Denied by floor for app containers."
+   },
+   {
+    "name": "mount",
+    "danger": 3,
+    "runtimes_allowing": 2,
+    "decision": "deny",
+    "rationale": "Mount-table tampering / fs-parser surface; danger 3, need rare. Most runtimes cap-gate to CAP_SYS_ADMIN. Floor (empty caps) denies outright."
+   },
+   {
+    "name": "umount",
+    "danger": 2,
+    "runtimes_allowing": 1,
+    "decision": "deny",
+    "rationale": "Unmount overlay/host mounts; mount-ns tampering. Deny by floor."
+   },
+   {
+    "name": "umount2",
+    "danger": 2,
+    "runtimes_allowing": 2,
+    "decision": "deny",
+    "rationale": "MNT_DETACH can expose underlay/confuse runtime; cap-gated elsewhere, deny here."
+   },
+   {
+    "name": "mount_setattr",
+    "danger": 3,
+    "runtimes_allowing": 2,
+    "decision": "deny",
+    "rationale": "idmapped-mount UID-remap escape surface; danger 3 need rare. Deny."
+   },
+   {
+    "name": "move_mount",
+    "danger": 3,
+    "runtimes_allowing": 2,
+    "decision": "deny",
+    "rationale": "New-mount-API relocate; mount-escape primitive. danger 3 need rare. Deny."
+   },
+   {
+    "name": "open_tree",
+    "danger": 2,
+    "runtimes_allowing": 2,
+    "decision": "deny",
+    "rationale": "Clones mount tree; pairs with move_mount. mount-API family drop."
+   },
+   {
+    "name": "open_tree_attr",
+    "danger": 2,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "open_tree + idmap attrs; new-mount-API family. Deny."
+   },
+   {
+    "name": "fsopen",
+    "danger": 3,
+    "runtimes_allowing": 2,
+    "decision": "deny",
+    "rationale": "Exposes in-kernel fs parsers (ext4/xfs); danger 3 need rare. CVE-2022-0185 lineage. Deny."
+   },
+   {
+    "name": "fsconfig",
+    "danger": 3,
+    "runtimes_allowing": 2,
+    "decision": "deny",
+    "rationale": "fs-driver parsing surface; part of fsopen chain. Deny."
+   },
+   {
+    "name": "fsmount",
+    "danger": 3,
+    "runtimes_allowing": 2,
+    "decision": "deny",
+    "rationale": "Materialize+attach mount from fs_context; mount-escape. Deny."
+   },
+   {
+    "name": "fspick",
+    "danger": 2,
+    "runtimes_allowing": 2,
+    "decision": "deny",
+    "rationale": "Reconfigure existing mount; mount-API family. Deny."
+   },
+   {
+    "name": "pivot_root",
+    "danger": 3,
+    "runtimes_allowing": 2,
+    "decision": "deny",
+    "rationale": "Swap root mount; runtime/init op not payload op. danger 3 need rare. Deny (runtime does it before the floor applies)."
+   },
+   {
+    "name": "chroot",
+    "danger": 2,
+    "runtimes_allowing": 6,
+    "decision": "deny",
+    "rationale": "Already ENOSYS w/o CAP_SYS_CHROOT; explicit deny. fchdir-escape component. App payloads don't chroot."
+   },
+   {
+    "name": "unshare",
+    "danger": 3,
+    "runtimes_allowing": 2,
+    "decision": "deny",
+    "rationale": "Nested-userns is the privilege-amplification gateway (CVE-2022-0185). danger 3 need rare; Docker/CRI-O block unpriv ns creation. Deny."
+   },
+   {
+    "name": "setns",
+    "danger": 3,
+    "runtimes_allowing": 1,
+    "decision": "deny",
+    "rationale": "Join namespace; boundary primitive, cap-gated everywhere. danger 3 need rare. Deny."
+   },
+   {
+    "name": "ptrace",
+    "danger": 3,
+    "runtimes_allowing": 3,
+    "decision": "deny",
+    "rationale": "Strong intra-container hijack/seccomp-bypass-of-peer primitive; debugger-only. danger 3 need rare; Docker/containerd/gVisor/firejail deny. Deny."
+   },
+   {
+    "name": "process_vm_readv",
+    "danger": 2,
+    "runtimes_allowing": 4,
+    "decision": "deny",
+    "rationale": "Read sibling process memory; info-leak across container procs. Defeats in-container isolation. Deny (Docker/containerd/firejail/gVisor deny)."
+   },
+   {
+    "name": "process_vm_writev",
+    "danger": 3,
+    "runtimes_allowing": 4,
+    "decision": "deny",
+    "rationale": "Write sibling process memory -> intra-container hijack. danger 3 need rare. Deny."
+   },
+   {
+    "name": "process_madvise",
+    "danger": 2,
+    "runtimes_allowing": 3,
+    "decision": "deny",
+    "rationale": "Cross-process MADV via pidfd; ptrace-class. Cap-gated, deny by floor."
+   },
+   {
+    "name": "kcmp",
+    "danger": 2,
+    "runtimes_allowing": 3,
+    "decision": "deny",
+    "rationale": "ASLR/heap-layout oracle (CRIU-only legit use). ptrace-class, deny."
+   },
+   {
+    "name": "pidfd_getfd",
+    "danger": 3,
+    "runtimes_allowing": 3,
+    "decision": "deny",
+    "rationale": "Steal fd from sibling proc -> lateral escape. danger 3 need rare. Deny."
+   },
+   {
+    "name": "perf_event_open_dup",
+    "danger": 4,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "(see perf_event_open) duplicate-guard only; canonical entry above."
+   },
+   {
+    "name": "clock_settime",
+    "danger": 1,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Host-global wall clock; CAP_SYS_TIME init-ns. Every runtime cap-gates; floor denies."
+   },
+   {
+    "name": "clock_settime64",
+    "danger": 1,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "32-bit time_t variant of clock_settime; same host-global state."
+   },
+   {
+    "name": "clock_adjtime",
+    "danger": 1,
+    "runtimes_allowing": 3,
+    "decision": "deny",
+    "rationale": "Slew/step system clock (writes need CAP_SYS_TIME); host-global. Deny on floor."
+   },
+   {
+    "name": "clock_adjtime64",
+    "danger": 1,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "32-bit variant; host-global clock. Deny."
+   },
+   {
+    "name": "adjtimex",
+    "danger": 1,
+    "runtimes_allowing": 3,
+    "decision": "deny",
+    "rationale": "Tune kernel clock discipline; host-global. systemd @clock blocks it. Deny."
+   },
+   {
+    "name": "settimeofday",
+    "danger": 1,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Set wall clock; CAP_SYS_TIME. Host-global, every runtime gates. Deny."
+   },
+   {
+    "name": "stime",
+    "danger": 1,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Legacy set-wall-clock; host-global. Deny."
+   },
+   {
+    "name": "sethostname",
+    "danger": 1,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "UTS is namespaced but app payloads never set it; CAP_SYS_ADMIN gated. Deny by floor."
+   },
+   {
+    "name": "setdomainname",
+    "danger": 1,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "NIS domain; cosmetic, cap-gated. Deny by floor."
+   },
+   {
+    "name": "swapon",
+    "danger": 0,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Global CAP_SYS_ADMIN; host storage admin. Never allowlisted. Deny."
+   },
+   {
+    "name": "swapoff",
+    "danger": 0,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Host storage admin; never allowlisted. Deny."
+   },
+   {
+    "name": "acct",
+    "danger": 1,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "BSD process accounting to a host file; CAP_SYS_PACCT. Host-global. Deny."
+   },
+   {
+    "name": "quotactl",
+    "danger": 1,
+    "runtimes_allowing": 1,
+    "decision": "deny",
+    "rationale": "Disk quota control; CAP_SYS_ADMIN. Host storage admin. Deny by floor."
+   },
+   {
+    "name": "quotactl_fd",
+    "danger": 1,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "fd-based quota control; same gating. Deny."
+   },
+   {
+    "name": "nfsservctl",
+    "danger": 0,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Obsolete NFS server control; ENOSYS, never allowlisted. Deny."
+   },
+   {
+    "name": "vhangup",
+    "danger": 1,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Host tty admin; CAP_SYS_TTY_CONFIG. Deny."
+   },
+   {
+    "name": "lookup_dcookie",
+    "danger": 0,
+    "runtimes_allowing": 1,
+    "decision": "deny",
+    "rationale": "Defunct oprofile dcookie; dead surface, dropped by consensus. Deny."
+   },
+   {
+    "name": "ustat",
+    "danger": 0,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Obsolete fs stats; not allowlisted by any runtime. Deny."
+   },
+   {
+    "name": "sysfs",
+    "danger": 0,
+    "runtimes_allowing": 1,
+    "decision": "deny",
+    "rationale": "Obsolete fs-type enumeration; no modern callers. CRI-O hard-denies. Deny."
+   },
+   {
+    "name": "ioperm",
+    "danger": 1,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Raw x86 I/O ports; CAP_SYS_RAWIO. Hardware reach; never legit in container. Deny."
+   },
+   {
+    "name": "iopl",
+    "danger": 1,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Raise x86 IOPL; CAP_SYS_RAWIO. Host-DoS primitive. Deny."
+   },
+   {
+    "name": "fanotify_init",
+    "danger": 2,
+    "runtimes_allowing": 1,
+    "decision": "deny",
+    "rationale": "Filesystem-wide watch/perm events; CAP_SYS_ADMIN. Cap-gated, deny by floor."
+   },
+   {
+    "name": "fanotify_mark",
+    "danger": 2,
+    "runtimes_allowing": 1,
+    "decision": "deny",
+    "rationale": "FS/mount-wide marks; CAP_SYS_ADMIN. Deny by floor (unusable without fanotify_init anyway)."
+   },
+   {
+    "name": "userfaultfd",
+    "danger": 3,
+    "runtimes_allowing": 2,
+    "decision": "deny",
+    "rationale": "Potent UAF/heap-grooming race primitive; Podman/CRI-O/firejail drop it. danger 3 need rare. Deny."
+   },
+   {
+    "name": "modify_ldt",
+    "danger": 3,
+    "runtimes_allowing": 4,
+    "decision": "deny",
+    "rationale": "Recurring x86 LDT LPE surface (CVE-2017-17053 etc); rarely needed. danger 3 need rare. Deny."
+   },
+   {
+    "name": "uselib",
+    "danger": 1,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Ancient a.out lib load; ENOSYS, historic exec-path surface. Never allowlisted. Deny."
+   },
+   {
+    "name": "_sysctl",
+    "danger": 0,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Dead binary sysctl (ENOSYS); not allowlisted anywhere. Deny."
+   },
+   {
+    "name": "vmsplice",
+    "danger": 2,
+    "runtimes_allowing": 5,
+    "decision": "deny",
+    "rationale": "Recurring gup/page-pinning memory-safety surface; CRI-O/firejail drop it, rarely needed by apps. Deny on floor."
+   },
+   {
+    "name": "migrate_pages",
+    "danger": 1,
+    "runtimes_allowing": 4,
+    "decision": "deny",
+    "rationale": "NUMA page migration; Podman/CRI-O/firejail drop; OpenWrt targets are non-NUMA. Deny (re-grant if needed)."
+   },
+   {
+    "name": "move_pages",
+    "danger": 1,
+    "runtimes_allowing": 4,
+    "decision": "deny",
+    "rationale": "NUMA page move; past UAF; dropped by Podman/CRI-O/firejail. Deny on floor."
+   },
+   {
+    "name": "map_shadow_stack",
+    "danger": 1,
+    "runtimes_allowing": 2,
+    "decision": "deny",
+    "rationale": "CET shadow-stack mapping; CRI-O hard-denies; interacts with MDWE W^X floor. Deny."
+   },
+   {
+    "name": "pciconfig_read",
+    "danger": 1,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Raw PCI config read (arch); hardware reach. Deny (arch-conditional)."
+   },
+   {
+    "name": "pciconfig_write",
+    "danger": 1,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Raw PCI config write; hardware reach. Deny."
+   },
+   {
+    "name": "pciconfig_iobase",
+    "danger": 1,
+    "runtimes_allowing": 0,
+    "decision": "deny",
+    "rationale": "Raw PCI iobase query; hardware reach. Deny."
+   },
+   {
+    "name": "clone",
+    "danger": 2,
+    "runtimes_allowing": 8,
+    "decision": "allow",
+    "rationale": "need=common; thread/proc creation is essential. CLONE_NEW* enabler risk is bounded by empty caps+userns; arg-filtering namespace flags is out of scope for the name-level floor. Keep."
+   },
+   {
+    "name": "clone3",
+    "danger": 3,
+    "runtimes_allowing": 4,
+    "decision": "allow",
+    "rationale": "Modern runtimes/musl need it; danger 3 but need=common. Cannot arg-filter struct flags, but empty-caps+userns bound the ns-creation risk. Keep (the hand list keeps it too)."
+   },
+   {
+    "name": "execve",
+    "danger": 2,
+    "runtimes_allowing": 8,
+    "decision": "allow",
+    "rationale": "Gateway to running binaries; suid neutralized by NNP+userns. need=common. Keep."
+   },
+   {
+    "name": "execveat",
+    "danger": 2,
+    "runtimes_allowing": 8,
+    "decision": "allow",
+    "rationale": "Same NNP/secureexec handling as execve; need=common. Keep."
+   },
+   {
+    "name": "mmap",
+    "danger": 2,
+    "runtimes_allowing": 8,
+    "decision": "allow",
+    "rationale": "Core mm; ubiquitous. Keep."
+   },
+   {
+    "name": "mprotect",
+    "danger": 2,
+    "runtimes_allowing": 8,
+    "decision": "allow",
+    "rationale": "Ubiquitous; W^X enforced separately via MDWE, not seccomp. Keep."
+   },
+   {
+    "name": "mremap",
+    "danger": 2,
+    "runtimes_allowing": 8,
+    "decision": "allow",
+    "rationale": "Core mm; need=common. Keep."
+   },
+   {
+    "name": "memfd_create",
+    "danger": 2,
+    "runtimes_allowing": 7,
+    "decision": "allow",
+    "rationale": "Common; fileless-exec is a building block not an escape, and MDWE/no-suid bound it. Keep."
+   },
+   {
+    "name": "open",
+    "danger": 2,
+    "runtimes_allowing": 7,
+    "decision": "allow",
+    "rationale": "Baseline FS access; need=common. Keep."
+   },
+   {
+    "name": "openat",
+    "danger": 2,
+    "runtimes_allowing": 8,
+    "decision": "allow",
+    "rationale": "Baseline FS access. Keep."
+   },
+   {
+    "name": "openat2",
+    "danger": 2,
+    "runtimes_allowing": 7,
+    "decision": "allow",
+    "rationale": "RESOLVE_* flags are safer than open; baseline. Keep."
+   },
+   {
+    "name": "socket",
+    "danger": 2,
+    "runtimes_allowing": 8,
+    "decision": "allow",
+    "rationale": "need=common; AF_PACKET/raw already blocked by absent CAP_NET_RAW. Name-level allow; (AF_ALG/AF_VSOCK arg-filtering is a refinement, not the floor). Keep."
+   },
+   {
+    "name": "setsockopt",
+    "danger": 2,
+    "runtimes_allowing": 8,
+    "decision": "allow",
+    "rationale": "need=common; priv opts gated by absent CAP_NET_ADMIN/RAW. Keep."
+   },
+   {
+    "name": "sendmsg",
+    "danger": 2,
+    "runtimes_allowing": 8,
+    "decision": "allow",
+    "rationale": "SCM_RIGHTS fd-passing is netns-confined; need=common. Keep."
+   },
+   {
+    "name": "splice",
+    "danger": 2,
+    "runtimes_allowing": 8,
+    "decision": "allow",
+    "rationale": "need=common; Dirty Pipe was write-side, bounded by fd perms. Keep."
+   },
+   {
+    "name": "prctl",
+    "danger": 2,
+    "runtimes_allowing": 8,
+    "decision": "allow",
+    "rationale": "NNP/seccomp/PDEATHSIG; no host-escape under empty caps; need=common. Keep."
+   },
+   {
+    "name": "renameat2",
+    "danger": 2,
+    "runtimes_allowing": 8,
+    "decision": "allow",
+    "rationale": "need=common; WHITEOUT needs CAP_MKNOD (absent). Keep."
+   },
+   {
+    "name": "link",
+    "danger": 2,
+    "runtimes_allowing": 8,
+    "decision": "allow",
+    "rationale": "need=common; protected_hardlinks + mount-ns bound it. Keep."
+   },
+   {
+    "name": "linkat",
+    "danger": 2,
+    "runtimes_allowing": 8,
+    "decision": "allow",
+    "rationale": "need=common; same hardlink protections. Keep."
+   },
+   {
+    "name": "mknod",
+    "danger": 2,
+    "runtimes_allowing": 7,
+    "decision": "allow",
+    "rationale": "Device nodes need CAP_MKNOD (absent) -> FIFO/socket only; need by some installers. Keep (already neutralized)."
+   },
+   {
+    "name": "mknodat",
+    "danger": 2,
+    "runtimes_allowing": 7,
+    "decision": "allow",
+    "rationale": "Same CAP_MKNOD gate; keep."
+   },
+   {
+    "name": "capset",
+    "danger": 2,
+    "runtimes_allowing": 7,
+    "decision": "allow",
+    "rationale": "Can only narrow within (empty) bounding set; inert here. Keep (libc/privsep use)."
+   },
+   {
+    "name": "sched_setscheduler",
+    "danger": 2,
+    "runtimes_allowing": 7,
+    "decision": "allow",
+    "rationale": "RT/FIFO needs absent CAP_SYS_NICE; DEADLINE DoS only. need rare but broadly allowed. Keep."
+   },
+   {
+    "name": "sched_setattr",
+    "danger": 2,
+    "runtimes_allowing": 7,
+    "decision": "allow",
+    "rationale": "DoS-only under empty caps; broadly allowed. Keep."
+   },
+   {
+    "name": "io_setup",
+    "danger": 3,
+    "runtimes_allowing": 6,
+    "decision": "allow",
+    "rationale": "Legacy AIO; danger 3 need rare but broadly allowed by container runtimes (musl/libaio). Borderline; kept to avoid breaking libaio workloads. Re-evaluate if AIO unused."
+   },
+   {
+    "name": "io_submit",
+    "danger": 3,
+    "runtimes_allowing": 6,
+    "decision": "allow",
+    "rationale": "Legacy AIO submit; broadly allowed by Docker/Podman/containerd. Kept for compat (distinct from io_uring which is denied)."
+   },
+   {
+    "name": "io_getevents",
+    "danger": 2,
+    "runtimes_allowing": 6,
+    "decision": "allow",
+    "rationale": "Legacy AIO completion reap; broadly allowed. Keep."
+   },
+   {
+    "name": "io_pgetevents",
+    "danger": 2,
+    "runtimes_allowing": 6,
+    "decision": "allow",
+    "rationale": "AIO completion + sigmask; broadly allowed. Keep."
+   },
+   {
+    "name": "io_cancel",
+    "danger": 1,
+    "runtimes_allowing": 6,
+    "decision": "allow",
+    "rationale": "Legacy AIO cancel; benign, broadly allowed. Keep."
+   },
+   {
+    "name": "io_destroy",
+    "danger": 1,
+    "runtimes_allowing": 6,
+    "decision": "allow",
+    "rationale": "Legacy AIO teardown; broadly allowed. Keep."
+   },
+   {
+    "name": "mq_notify",
+    "danger": 2,
+    "runtimes_allowing": 7,
+    "decision": "allow",
+    "rationale": "CVE-2017-11176 long fixed; ipc-ns scoped; broadly allowed. Keep."
+   },
+   {
+    "name": "request_key_dup",
+    "danger": 2,
+    "runtimes_allowing": 4,
+    "decision": "deny",
+    "rationale": "(see request_key) guard entry; canonical above."
+   },
+   {
+    "name": "read",
+    "danger": 0,
+    "runtimes_allowing": 8,
+    "decision": "allow",
+    "rationale": "Baseline. Keep."
+   },
+   {
+    "name": "write",
+    "danger": 0,
+    "runtimes_allowing": 8,
+    "decision": "allow",
+    "rationale": "Baseline. Keep."
+   },
+   {
+    "name": "futex",
+    "danger": 0,
+    "runtimes_allowing": 8,
+    "decision": "allow",
+    "rationale": "Core threading primitive. Keep."
+   },
+   {
+    "name": "epoll_wait",
+    "danger": 0,
+    "runtimes_allowing": 8,
+    "decision": "allow",
+    "rationale": "Event loop core. Keep."
+   },
+   {
+    "name": "clock_gettime",
+    "danger": 0,
+    "runtimes_allowing": 8,
+    "decision": "allow",
+    "rationale": "Baseline time read (vDSO). Keep."
+   },
+   {
+    "name": "fcntl",
+    "danger": 2,
+    "runtimes_allowing": 8,
+    "decision": "allow",
+    "rationale": "F_SETLEASE/pipe-sz rlimit/cap-gated; no host-escape under empty caps; need=common. Keep."
+   },
+   {
+    "name": "getsockopt",
+    "danger": 1,
+    "runtimes_allowing": 8,
+    "decision": "allow",
+    "rationale": "Priv opts blocked by empty caps; need=common. Keep."
+   },
+   {
+    "name": "setuid",
+    "danger": 1,
+    "runtimes_allowing": 8,
+    "decision": "allow",
+    "rationale": "Mapped-uid constrained in userns; classic privsep. Keep."
+   },
+   {
+    "name": "setgroups",
+    "danger": 2,
+    "runtimes_allowing": 7,
+    "decision": "allow",
+    "rationale": "Limited to mapped gids inside established userns; need by privsep. Keep."
+   },
+   {
+    "name": "recvmsg",
+    "danger": 1,
+    "runtimes_allowing": 8,
+    "decision": "allow",
+    "rationale": "SCM_RIGHTS bounded by peer; common+benign. Keep."
+   },
+   {
+    "name": "prlimit64",
+    "danger": 1,
+    "runtimes_allowing": 8,
+    "decision": "allow",
+    "rationale": "Cross-task hard-limit raise needs absent CAP_SYS_RESOURCE; self-limit common. Keep."
+   },
+   {
+    "name": "pidfd_open",
+    "danger": 1,
+    "runtimes_allowing": 7,
+    "decision": "allow",
+    "rationale": "Ref only; danger realized via pidfd_getfd (denied) and pidfd_send_signal. Keep."
+   },
+   {
+    "name": "pidfd_send_signal",
+    "danger": 1,
+    "runtimes_allowing": 7,
+    "decision": "allow",
+    "rationale": "Normal signal perm checks; ns-scoped DoS only. Keep."
+   },
+   {
+    "name": "seccomp",
+    "danger": 1,
+    "runtimes_allowing": 6,
+    "decision": "allow",
+    "rationale": "Self-confining (nested filters) under NNP; no escape. Keep so apps can sandbox further."
+   },
+   {
+    "name": "syslog",
+    "danger": 2,
+    "runtimes_allowing": 3,
+    "decision": "allow",
+    "rationale": "READ_ALL/CLEAR gated by absent CAP_SYSLOG; dmesg_restrict bounds the rest. Borderline; kept (Podman/CRI-O allow, kernel-side gated). Re-grant model unchanged."
+   }
+  ],
+  "deny_list": [
+   "add_key",
+   "request_key",
+   "keyctl",
+   "mount",
+   "umount",
+   "umount2",
+   "mount_setattr",
+   "move_mount",
+   "open_tree",
+   "open_tree_attr",
+   "fsopen",
+   "fsconfig",
+   "fsmount",
+   "fspick",
+   "pivot_root",
+   "chroot",
+   "ptrace",
+   "process_vm_readv",
+   "process_vm_writev",
+   "kcmp",
+   "process_madvise",
+   "pidfd_getfd",
+   "bpf",
+   "perf_event_open",
+   "io_uring_setup",
+   "io_uring_enter",
+   "io_uring_register",
+   "init_module",
+   "finit_module",
+   "delete_module",
+   "create_module",
+   "query_module",
+   "get_kernel_syms",
+   "kexec_load",
+   "kexec_file_load",
+   "reboot",
+   "clock_settime",
+   "clock_settime64",
+   "clock_adjtime",
+   "clock_adjtime64",
+   "adjtimex",
+   "settimeofday",
+   "stime",
+   "sethostname",
+   "setdomainname",
+   "swapon",
+   "swapoff",
+   "acct",
+   "quotactl",
+   "quotactl_fd",
+   "nfsservctl",
+   "vhangup",
+   "lookup_dcookie",
+   "ustat",
+   "sysfs",
+   "_sysctl",
+   "uselib",
+   "ioperm",
+   "iopl",
+   "pciconfig_read",
+   "pciconfig_write",
+   "pciconfig_iobase",
+   "unshare",
+   "setns",
+   "open_by_handle_at",
+   "name_to_handle_at",
+   "map_shadow_stack",
+   "fanotify_init",
+   "fanotify_mark",
+   "userfaultfd",
+   "modify_ldt",
+   "vmsplice",
+   "migrate_pages",
+   "move_pages"
+  ],
+  "disagreements": [
+   "ioctl: danger 4 (heuristic -> deny) but need=common and allowed by all 8 surveyed runtimes. Resolution: ALLOW. A name-level deny would break virtually every app (terminals, tun/tap, fs ioctls). Its risk is fd-dependent and the real mitigation is fd visibility + arg-filtering, which is out of scope for a name-level floor. Heuristic's own ALLOW-the-common-set clause wins.",
+   "clone3: danger 3 + (some runtimes ENOSYS it without CAP_SYS_ADMIN, so the consensus leans deny) vs need=common and required by modern glibc/musl/runtimes. Resolution: ALLOW. seccomp cannot inspect clone3's struct-hidden CLONE_NEW* flags, but the actual ns-creation gain is bounded by empty caps + userns, and forcing ENOSYS here would make musl fall back unpredictably on OpenWrt. Matches the existing hand-made list which keeps clone/clone3.",
+   "name_to_handle_at: danger only 2 and 7/9 runtimes ALLOW it, so neither danger nor runtime-consensus calls for a deny. Resolution: DENY anyway, as the forging half of the Shocker pair with open_by_handle_at. This is a place the floor is deliberately TIGHTER than Docker/Podman; cost is near-zero for app payloads.",
+   "vmsplice / migrate_pages / move_pages / modify_ldt: danger 1-3, allowed by Docker/containerd (the moby lineage) but denied by Podman/CRI-O/firejail. Mixed consensus. Resolution: DENY. need is rare, OpenWrt targets are non-NUMA (migrate/move_pages pointless) and these are recurring memory-safety / LPE surfaces; re-grant via CONTAINER_SECCOMP_ALLOW for the rare workload that needs them.",
+   "io_setup/io_submit/io_getevents (legacy AIO): danger up to 3 with need=rare (heuristic -> deny) but broadly allowed (6/9, the whole moby+podman lineage keeps libaio). Resolution: ALLOW, distinct from io_uring (denied). Legacy AIO is a real dependency for some DB/storage workloads and is far less CVE-dense than io_uring; denying it would be a likely false-deny. Kept conservatively.",
+   "syslog: danger 2, allowed by Podman/CRI-O but blocked by Docker/systemd/firejail/gVisor. Resolution: ALLOW (kept). READ/CLEAR are gated by absent CAP_SYSLOG and dmesg_restrict; leaving it on defaultAction-ENOSYS-free avoids surprising log tools. Low-confidence keep; reasonable to move to deny_list if dmesg leakage is a concern on a given target.",
+   "chroot/clock_settime/settimeofday/acct/quotactl/iopl/ioperm/fanotify_*: danger low (0-2) and already EPERM/ENOSYS without the relevant cap, so by danger alone they look harmless. Resolution: DENY explicitly. The floor's principle is to not rely on the cap check as the only boundary; making these explicit ERRNO at the seccomp layer is defense-in-depth and costs nothing for app payloads."
+  ],
+  "summary": "This floor is an allowlist (SCMP_ACT_ERRNO defaultAction, ENOSYS for unknown) just like Docker/Podman/containerd, but it is deliberately TIGHTER because it assumes a fixed, hardened posture that those runtimes only reach with extra flags: empty capability set, full user namespace, noNewPrivileges, read-only root. The vendored base allow-list is the moby/containers-common lineage; our renderer drops the 75 syscalls in deny_list from it, which is the new seccomp-tighten.list content.\n\nWhere it equals the big runtimes: it denies the module family, kexec, reboot, the mount/new-mount-API family, ptrace and the cross-process inspection set (process_vm_*, kcmp, process_madvise, pidfd_getfd), bpf, perf_event_open, the keyring family, clock/time-setting, swap/acct/quota, raw I/O (iopl/ioperm), unshare/setns, and open_by_handle_at.\n\nWhere it is TIGHTER than Docker/Podman default: (1) it denies these UNCONDITIONALLY rather than cap-gating them \u2014 Docker/Podman/containerd re-enable mount, unshare, setns, bpf, ptrace, perf, modules, reboot, chroot, etc. the moment the matching capability is added; our floor has no caps to add at the seccomp layer, so re-grant is explicit and per-package via CONTAINER_SECCOMP_ALLOW, not implicit via --cap-add. (2) It drops name_to_handle_at as well as open_by_handle_at (closes both Shocker halves; Docker keeps name_to_handle_at). (3) It drops the entire io_uring family (Docker keeps it; matches Podman/CRI-O). (4) It drops userfaultfd, modify_ldt, vmsplice, migrate_pages, move_pages, map_shadow_stack, sysfs, ustat, lookup_dcookie, uselib, _sysctl, nfsservctl (matches Podman/CRI-O/firejail, tighter than Docker which leaves several of these allowed).\n\nWhere it stays as permissive as Docker/Podman (deliberate, to avoid false-denies): clone/clone3 (cannot arg-filter struct flags at name level; bounded by empty caps+userns), ioctl (un-arg-filtered; risk is fd-scoped), socket (AF_PACKET/raw already dead without CAP_NET_RAW; no AF_ALG/AF_VSOCK arg filter at this layer), memfd_create/mprotect (W^X is enforced by the separate MDWE floor, not seccomp), execve(at), mknod(at) (device nodes already need absent CAP_MKNOD), and legacy AIO (io_setup/io_submit/... kept, distinct from io_uring).\n\nDelta vs the current hand-made /usr/src/openwrt-stuff/containers/files/seccomp-tighten.list \u2014 ADD: create_module, get_kernel_syms, open_tree_attr, fanotify_init, fanotify_mark, userfaultfd, modify_ldt, vmsplice, migrate_pages, move_pages, and the io_uring family (io_uring_setup/enter/register). These are genuine escape/LPE surfaces the current list misses. KEEP all current entries. No removals recommended; every entry in the current list is justified for a zero-cap floor. Note the list mixes a few names that are arch-conditional or already-ENOSYS (pciconfig_*, stime, sysfs, ustat, _sysctl) \u2014 harmless to drop, they simply won't appear in the resolved base on arches that lack them."
+ },
+ "verdicts": [
+  {
+   "lens": "FALSE-DENY: each deny_list entry checked against need=common, surveyed runtime allowlists (esp. Docker default which leaves several uncond-allowed), and real libc/runtime/init behavior, defaulting to flag-if-uncertain.",
+   "pass": true,
+   "issues": [
+    {
+     "syscall": "clock_adjtime / clock_adjtime64 / adjtimex",
+     "problem": "Denied, but Docker's default profile leaves clock_adjtime/clock_adjtime64 UNCONDITIONALLY allowed (not cap-gated). These calls have a legitimate READ path: adjtimex(buf, modes=0) and clock_adjtime(clk, tx.modes=0) return clock-discipline state without CAP_SYS_TIME, and are used by NTP/chrony/systemd-timesyncd CLIENTS and some glibc time paths. The privileged (slew/step) effect already requires absent CAP_SYS_TIME, so the danger is fully cap-gated; only the read use is collateral. Verified in base.json these live in the 370-name no-cap common group, confirming upstream treats them as ordinary.",
+     "fix": "Acceptable to keep denying (callers tolerate ENOSYS and fall back), but document that a time-sync/NTP-aware container payload may need clock_adjtime re-granted via CONTAINER_SECCOMP_ALLOW. Do NOT add the read-tolerant variants to a 'must-deny' tier; keep them re-grantable. No code change required."
+    },
+    {
+     "syscall": "name_to_handle_at",
+     "problem": "Denied as the forging half of the Shocker pair, and base.json confirms it is UNCOND-ALLOW upstream and Docker keeps it. systemd-as-init and some fs tools call name_to_handle_at purely to obtain a mount-id (no open_by_handle_at), e.g. to correlate /proc/self/mountinfo entries. This is exactly the 'init container' case in the lens.",
+     "fix": "Keep the deny (the synthesis's stated deliberate tightening is sound: open_by_handle_at is denied so the forged handle is useless, and systemd/util-linux fall back to mountinfo on ENOSYS/EOPNOTSUPP). Just record this as a known tighter-than-Docker behavior so an init-container regression is traced here rather than mis-diagnosed. No change required."
+    },
+    {
+     "syscall": "process_vm_readv",
+     "problem": "Denied, but Docker's default profile leaves process_vm_readv UNCONDITIONALLY allowed; it is need-adjacent for some in-app tooling (sanitizers, fast same-/cross-process IPC, certain GC/JIT runtimes). The deny is a deliberate intra-container isolation choice, not a host-boundary requirement.",
+     "fix": "Keep the deny (ordinary app payloads don't require cross-process memory reads and tolerate EPERM/ENOSYS), but ensure CONTAINER_SECCOMP_ALLOW can re-grant it for debugging/profiling containers. Note it is paired-but-asymmetric with process_vm_writev (danger 3) which is the real hazard. No code change required."
+    }
+   ]
+  },
+  {
+   "lens": "FALSE-ALLOW: syscalls that are real escape/host-compromise primitives left ALLOWED",
+   "pass": false,
+   "issues": [
+    {
+     "syscall": "clone3",
+     "problem": "ALLOW (danger 3) leaves the nested-namespace / nested-userns creation gateway fully open, defeating the floor's own central tightening goal. The synthesis DENIES unshare and setns with the explicit rationale 'nested-userns is the privilege-amplification gateway (CVE-2022-0185)' and 'do not let payloads re-namespace' \u2014 but clone3 with CLONE_NEWUSER|CLONE_NEWNS|CLONE_NEWNET|... is the *equivalent* namespace-creation primitive. Because clone3 hides its flags in a struct, seccomp cannot arg-filter it, so allowing clone3 by name re-opens exactly the door unshare was closed to stop. The 'bounded by empty caps+userns' defense is the same defense that would equally excuse unshare, so the deny(unshare)/allow(clone3) pair is internally inconsistent. Verified against the actual base profile: clone3 is plain SCMP_ACT_ALLOW with args=[] (no filter) and unshare/setns are dropped by the tighten list.",
+     "fix": "If unshare/setns are denied for re-namespacing, clone3 must be treated as part of the same family. Either (a) deny clone3 on the floor and require CONTAINER_SECCOMP_ALLOW for the rare runtime that genuinely needs the modern clone path, accepting the musl/glibc-fallback risk; or (b) explicitly document and accept that the no-re-namespace guarantee does NOT hold and downgrade the unshare/setns rationale accordingly. Do not claim the floor blocks payload re-namespacing while clone3 is name-allowed."
+    },
+    {
+     "syscall": "clone",
+     "problem": "ALLOW (danger 2) with the justification 'arg-filtering namespace flags is out of scope for the name-level floor.' That justification is factually wrong for THIS profile: the base already arg-filters socket (SCMP_ACT_ERRNO on AF_NETLINK/NETLINK_AUDIT index0=16/index2=9 unless CAP_AUDIT_WRITE). clone's flags live in a register (index 0) and CAN be filtered exactly the same way \u2014 the upstream moby default profile blocks CLONE_NEWUSER in clone's args by default. So unlike clone3, clone's CLONE_NEW* path is filterable but left wide open, and the floor is actually LOOSER than the Docker default it claims lineage from for this syscall. Leaving it name-allowed re-opens the userns/mountns creation gateway that unshare-deny was meant to close.",
+     "fix": "Add an arg filter on clone blocking CLONE_NEWUSER (and ideally CLONE_NEWNS/NET/PID/UTS/IPC) -> SCMP_ACT_ERRNO, matching the upstream moby profile, instead of name-level ALLOW. This closes the register-visible half of the re-namespacing gateway at zero cost to normal thread/process creation. Drop the 'out of scope' rationale \u2014 the profile demonstrably does arg-filtering elsewhere."
+    },
+    {
+     "syscall": "s390_pci_mmio_read / s390_pci_mmio_write",
+     "problem": "Left ALLOWED (present in base with arches s390/s390x, not in the tighten list, and not covered by ANY decision in the synthesis). These are raw PCI MMIO read/write \u2014 direct device-memory hardware reach, the s390 analogue of ioperm/iopl/pciconfig_read/write/iobase which the floor explicitly DENIES as 'raw I/O / hardware reach, never legit in container.' This is an arch-conditional false-allow that violates the floor's own stated hardware-reach deny principle.",
+     "fix": "Add s390_pci_mmio_read and s390_pci_mmio_write to the deny_list / tighten.list alongside the pciconfig_* and iopl/ioperm hardware-reach group (they are arch-conditional and simply won't appear in the resolved base on non-s390 targets, exactly like pciconfig_*). Also add s390_runtime_instr (CPU runtime-instrumentation, privileged hardware feature) to the same group for consistency."
+    }
+   ]
+  },
+  {
+   "lens": "COMPLETENESS: is every inventoried syscall decided? Are arch-specific syscalls considered? Is the deny_list consistent with the vendored base profile (only dropping names the base actually allows)?",
+   "pass": false,
+   "issues": [
+    {
+     "syscall": "io_uring_setup / io_uring_enter / io_uring_register",
+     "problem": "deny_list drops all three and the summary headlines them as ADD ('genuine escape/LPE surfaces the current list misses'), but the vendored base (/usr/src/openwrt-stuff/containers/files/seccomp-base.json) does NOT list io_uring_* at all. With defaultAction SCMP_ACT_ERRNO they are ALREADY denied. The renderer (seccomp-render.uc lines 75-78) only iterates over names present in the base and removes drop_names from them; it cannot deny a name that was never allowed. So these deny entries are pure no-ops, and the summary's central claim that the current list 'misses' them is false.",
+     "fix": "Remove io_uring_setup/enter/register from the ADD recommendation (already ENOSYS via defaultAction), OR add them to the base as an SCMP_ACT_ERRNO group first; do not present a no-op tighten entry as new coverage. Correct the summary."
+    },
+    {
+     "syscall": "userfaultfd, vmsplice, migrate_pages, move_pages",
+     "problem": "Same defect: deny_list drops them and the summary lists them as ADD, but none appear in the base allow-set (absent from seccomp-base.json ALLOW groups). The rationales assert 'Docker/containerd allow them (moby lineage keeps them)', which is irrelevant to THIS vendored base where they are already default-ERRNO. Dropping a non-allowed name is a no-op in the renderer. The lens question 'you only drop names the base actually allows' is answered NO for these.",
+     "fix": "Drop these four from the tighten/ADD set (already ENOSYS), or add explicit SCMP_ACT_ERRNO entries to the base if defense-in-depth visibility is wanted; fix the rationales claiming the base allows them."
+    },
+    {
+     "syscall": "add_key, request_key, create_module, get_kernel_syms, open_tree_attr, _sysctl",
+     "problem": "These six are not present anywhere in seccomp-base.json (not even as ERRNO entries). The deny_list and rationales (e.g. add_key 'Podman/containerd drop key-creation', create_module 'every runtime drops it') treat them as removals from an allow-set, but there is nothing to remove \u2014 they are inert tokens. keyctl IS in the base (unconditional allow) so that one is a real drop, but add_key/request_key are not, despite being grouped with it.",
+     "fix": "Either delete these tokens, or add them to the base as SCMP_ACT_ERRNO if you want them named for audit. Do not justify them with 'runtimes drop it from the allow-list' language since this base never allowed them."
+    },
+    {
+     "syscall": "swapon, swapoff, nfsservctl, ustat, sysfs, uselib, pciconfig_read/write/iobase, map_shadow_stack",
+     "problem": "All appear in seccomp-base.json only inside an SCMP_ACT_ERRNO group, never in an ALLOW group. Dropping them via the tighten list does not change the rendered allow-set (renderer only filters names out of ALLOW groups). Their decision rows frame them as allow-set removals ('CRI-O hard-denies', 'dropped by consensus') when they are already errno. The synthesis never distinguishes 'base ERRNO' from 'base ALLOW', so 'every inventoried syscall decided' is true textually but several decisions are mechanically void.",
+     "fix": "Annotate each deny decision with which base group the name lives in (ALLOW vs ERRNO vs absent vs cap-gated). Only names in the unconditional ALLOW set are real tighten work \u2014 the genuine set is 26: keyctl, mount, umount, umount2, mount_setattr, move_mount, open_tree, fsopen, fsconfig, fsmount, fspick, pivot_root, ptrace, process_vm_readv, process_vm_writev, pidfd_getfd, reboot, clock_adjtime, clock_adjtime64, adjtimex, unshare, setns, name_to_handle_at, fanotify_init, fanotify_mark, modify_ldt."
+    },
+    {
+     "syscall": "chroot, kcmp, process_madvise, bpf, perf_event_open, init_module, finit_module, delete_module, query_module, clock_settime(64), settimeofday, stime, sethostname, setdomainname, acct, quotactl, quotactl_fd, vhangup, lookup_dcookie, ioperm, iopl, open_by_handle_at",
+     "problem": "These 22 deny entries live in CAP-gated includes groups in the base (CAP_SYS_MODULE, CAP_SYS_TIME, CAP_SYS_ADMIN, CAP_BPF, CAP_PERFMON, CAP_SYS_PTRACE, CAP_SYS_RAWIO, CAP_DAC_READ_SEARCH, CAP_SYS_CHROOT, etc.). The renderer unconditionally skips any group with includes.caps (seccomp-render.uc line 69: 'if (length(inc.caps)) continue;'). With the floor's empty cap set these groups never emit, so the syscalls are already excluded regardless of the tighten list. The synthesis presents them as floor decisions ('floor denies') without noting the renderer already drops the whole cap-gated group; the tighten entries are redundant.",
+     "fix": "State explicitly that cap-gated base groups are dropped wholesale by the renderer under the empty cap set, so listing these in the tighten file is belt-and-suspenders, not the mechanism. The rationale must not imply the tighten list is what denies them."
+    },
+    {
+     "syscall": "io_pgetevents",
+     "problem": "Decision is 'allow' ('AIO completion + sigmask; broadly allowed. Keep.') but io_pgetevents is NOT in seccomp-base.json's allow-set. The renderer can only remove names from the base, never add them, so an 'allow' decision for an absent name is unfulfillable \u2014 the syscall returns ENOSYS at runtime regardless. This is an inconsistency between an ALLOW decision and the base.",
+     "fix": "Correct the decision to note io_pgetevents is not in the base (so it is effectively denied and the libaio-compat rationale does not hold), or add io_pgetevents to the base ALLOW set if libaio completion-with-sigmask compat is actually required."
+    },
+    {
+     "syscall": "arch_prctl / riscv_flush_icache / cacheflush / arm_* / set_tls / s390_*",
+     "problem": "The lens asks whether arch-specific syscalls are considered. The decisions array contains NO entry for arch_prctl (amd64/x32, essential on x86_64), riscv_flush_icache (riscv64), or cacheflush/breakpoint/set_tls/arm_fadvise64_64/arm_sync_file_range (arm/arm64). These are inventory members of the base relied upon as 'keep' but never decided, so 'is every inventoried syscall decided' is NO. They are correctly arch-gated in the base (includes.arches) and the renderer honors arch via arch_token_allowed, so behavior is fine, but coverage is incomplete. modify_ldt IS decided (deny) and correctly arch-conditional (amd64/x32/x86) \u2014 that one is consistent.",
+     "fix": "Add explicit keep decisions for the arch-conditional ALLOW syscalls (arch_prctl, riscv_flush_icache, cacheflush, set_tls, breakpoint, arm_*) so the inventory is fully covered; note they emit only on their matching arch via includes.arches and must NOT be dropped or x86_64/arm/riscv guests break."
+    },
+    {
+     "syscall": "setns",
+     "problem": "setns is listed once in deny_list but appears in TWO base groups: a CAP_SYS_ADMIN cap-gated group AND the unconditional 'namespace' ALLOW group. The synthesis decision (deny) does not acknowledge the dual listing. Because it is in the unconditional ALLOW group, the tighten drop IS real and necessary for setns (unlike the cap-only entries) \u2014 but the rationale 'cap-gated everywhere' understates it: without the tighten entry setns would actually be allowed via the uncapped group. This is the one case where the cap-gating reasoning is actively wrong and the explicit drop is load-bearing.",
+     "fix": "Correct the setns rationale to note it is in the UNCONDITIONAL allow group of this base (not merely cap-gated), so the explicit deny is mandatory, not redundant. Verify no other 'cap-gated' entry also has a duplicate uncapped allow group."
+    }
+   ]
+  }
+ ]
+}

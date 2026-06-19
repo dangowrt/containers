@@ -1,0 +1,5 @@
+#!/bin/sh
+[ -s /lib/functions/uxc.sh ] || exit 0
+. /lib/functions/uxc.sh
+uxc_preinst "@@NAME@@" "@@NEWVOL@@" "@@NEWSIZE@@"
+exit $?

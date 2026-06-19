@@ -1,0 +1,267 @@
+# seccomp-tighten.list — OpenWrt container seccomp floor: removal delta
+#
+# Syscalls removed from the allow-list that survives resolving seccomp-base.json
+# for the target arch with an EMPTY capability set. One token per line; the rest
+# of the line is the justification. Blank lines and '#' comments are ignored.
+# A token may be a single syscall name or a Podman cap-group name prefixed with
+# '@' (e.g. @CAP_SYS_ADMIN) to drop every name a cap-group would have allowed.
+#
+# Principle: the floor runs with zero caps, all namespaces, noNewPrivileges and a
+# read-only root. Podman's default profile leans on capabilities for the real
+# boundary and therefore leaves a number of powerful syscalls in the
+# unconditional ALLOW group. App/runtime containers do not need them, so we drop
+# them. Each removed syscall already returns ENOSYS/EPERM by defaultAction; the
+# only behavioural change for a well-behaved app is none. Anything an ordinary
+# Go/C/musl app, a shell, or a process supervisor needs is deliberately KEPT
+# (futex*, epoll*, clock_gettime*, openat*, read/write*, mmap/mprotect,
+# clone/clone3, the *xattr family, prctl, the socket family, etc.).
+
+## --- keyring family: credential theft / kernel keyring abuse, never used by apps
+add_key             kernel keyring write; not needed by app containers
+request_key         kernel keyring lookup; not needed by app containers
+keyctl              kernel keyring control; classic container-escape surface
+
+## --- mount / filesystem-namespace manipulation: with user-ns these widen escape surface
+mount               new mounts inside the container are a floor violation; opt back in via CONTAINER_SECCOMP_ALLOW
+umount              unmounting host/overlay mounts; not needed by apps
+umount2             unmounting host/overlay mounts; not needed by apps
+mount_setattr       remount/propagation changes; mount-namespace tampering
+move_mount          new-mount-API relocate; mount-namespace tampering
+open_tree           new-mount-API tree clone; mount-namespace tampering
+fsopen              new-mount-API fs context create
+fsconfig            new-mount-API fs context configure
+fsmount             new-mount-API attach
+fspick              new-mount-API pick
+pivot_root          swap the root mount; only a runtime/init-of-host needs it, not the payload
+chroot              change root dir; not needed by app payloads (ENOSYS already w/o CAP_SYS_CHROOT, dropped to be explicit)
+
+## --- ptrace / cross-process inspection: defeats process isolation inside the ns
+ptrace              trace/peek/poke other processes; debugger-only, escape aid
+process_vm_readv    read another process's memory
+process_vm_writev   write another process's memory
+kcmp                compare kernel resources of two processes; info-leak/ASLR oracle
+process_madvise     advise on another process's memory; cross-process reach
+
+## --- BPF / perf / tracing: kernel attack surface, needs privilege to be useful anyway
+bpf                 load eBPF; major kernel attack surface
+perf_event_open     perf subsystem; kernel info-leak/attack surface
+
+## --- module / kernel-image / power: host-level operations a container must never do
+init_module         load kernel module
+finit_module        load kernel module (fd form)
+delete_module       unload kernel module
+query_module        legacy module query
+kexec_load          load a new kernel
+kexec_file_load     load a new kernel (fd form)
+reboot              reboot/halt/power-off the host
+
+## --- time/clock and host identity: host-global state, not container-scoped
+clock_settime       set the system clock (host-global; container has no business)
+clock_settime64     set the system clock (32-bit time_t variant)
+clock_adjtime       slew/step the system clock
+clock_adjtime64     slew/step the system clock (32-bit time_t variant)
+adjtimex            adjust kernel clock parameters
+settimeofday        set wall-clock time
+stime               set wall-clock time (legacy)
+sethostname         change host name (uts is namespaced, but app payloads don't need it)
+setdomainname       change NIS domain name
+
+## --- swap / accounting / quota / misc admin
+swapon              enable swap; host storage admin
+swapoff             disable swap; host storage admin
+acct                BSD process accounting; host-global
+quotactl            disk quota control; host storage admin
+quotactl_fd         disk quota control (fd form)
+nfsservctl          ancient NFS server control
+vhangup            virtually hang up the controlling tty; host tty admin
+lookup_dcookie      legacy oprofile dcookie lookup
+ustat               obsolete fs stats; attack surface, no callers
+sysfs               obsolete fs-type enumeration; no modern callers
+
+## --- raw I/O / port / descriptor-table poking
+ioperm              grant raw I/O port access (x86); hardware reach
+iopl                raise I/O privilege level (x86); hardware reach
+pciconfig_read      raw PCI config read
+pciconfig_write     raw PCI config write
+pciconfig_iobase    raw PCI io base query
+pidfd_getfd         steal an fd from another process; sandbox-bypass primitive
+
+## --- namespace / privilege boundary widening from inside
+unshare             create new namespaces inside the container; do not let payloads re-namespace
+setns               enter another namespace; needs an external fd, but deny by floor
+open_by_handle_at   resolve a file handle, bypassing path-based confinement (the classic Shocker escape)
+name_to_handle_at   produce the handle open_by_handle_at consumes; dropped as a pair
+
+## --- W^X / shadow-stack helpers that fight the MDWE floor
+map_shadow_stack    CET shadow-stack mapping; not needed and interacts with MDWE
+
+## --- fanotify: filesystem-wide watch / permission events (in the unconditional
+##     ALLOW group of the base; cap-gated in practice, never used by app payloads)
+fanotify_init       global filesystem watch/permission events
+fanotify_mark       add fanotify marks across mounts; pairs with fanotify_init
+
+## --- x86 LDT: recurring local-privilege-escalation surface (arch-conditional)
+modify_ldt          modify the per-process LDT; recurring x86 LPE surface (CVE-2017-17053 et al)
+
+## --- s390 raw hardware reach (arch-conditional; absent on other targets)
+s390_pci_mmio_read  raw PCI MMIO read (s390); hardware reach, like pciconfig_*/iopl
+s390_pci_mmio_write raw PCI MMIO write (s390); hardware reach
+s390_runtime_instr  s390 CPU runtime-instrumentation; privileged hardware feature
+
+# ============================================================================
+# Second-tier floor (2026-06-10): cut everything beyond a hello-world app /
+# unprivileged-port listener. The kept set is I/O, the socket family, epoll/
+# poll/select, mmap/munmap/mremap/madvise, futex*, signals, clock/time, the
+# identity getters, clone/clone3 (threads), kill/tkill/tgkill, and the common
+# file ops (open/read/write/symlink/mkdir/rename/unlink/truncate). Everything
+# below returns the profile default (EPERM); a container that needs one opts
+# back in via CONTAINER_SECCOMP_ALLOW.
+
+## --- exec family: a payload does not re-exec itself; a supervisor opts in
+execve              replace the process image; not a floor need
+execveat            replace the process image (fd form)
+
+## --- W^X mapping: granted by the linker/init phase bases for loader RELRO and
+##     runtime init then revoked at main, so it need not sit in the base; W^X is
+##     enforced by MDWE regardless. JIT/dlopen runtimes opt back in.
+mprotect            change page protections; phase-provided for startup, denied to the workload
+pkey_mprotect       protection-key mprotect variant; opt in
+pkey_alloc          allocate a protection key; opt in
+pkey_free           free a protection key; opt in
+
+## --- subprocess creation: clone/clone3 (threads) are kept; spawning a separate
+##     process (shelling out) is opt-in
+fork                spawn a child process; opt in
+vfork               spawn a child process (shared mm); opt in
+
+## --- SysV IPC: not used by network apps
+shmget              SysV shared-memory get
+shmat               SysV shared-memory attach
+shmdt               SysV shared-memory detach
+shmctl              SysV shared-memory control
+semget              SysV semaphore get
+semop               SysV semaphore op
+semctl              SysV semaphore control
+semtimedop          SysV semaphore timed op
+semtimedop_time64   SysV semaphore timed op (32-bit time_t)
+msgget              SysV message-queue get
+msgsnd              SysV message send
+msgrcv              SysV message receive
+msgctl              SysV message-queue control
+ipc                 multiplexed SysV IPC entry (32-bit)
+
+## --- POSIX message queues
+mq_open             open a POSIX mqueue
+mq_unlink           remove a POSIX mqueue
+mq_timedsend        send to a POSIX mqueue
+mq_timedsend_time64 send to a POSIX mqueue (32-bit time_t)
+mq_timedreceive     receive from a POSIX mqueue
+mq_timedreceive_time64 receive from a POSIX mqueue (32-bit time_t)
+mq_notify           request mqueue notification
+mq_getsetattr       get/set mqueue attributes
+
+## --- io_uring: large asynchronous-I/O attack surface; opt in
+io_uring_setup      create an io_uring instance
+io_uring_enter      submit/complete io_uring requests
+io_uring_register   register io_uring resources
+io_setup            create an AIO context
+io_submit           submit AIO requests
+io_getevents        reap AIO completions
+io_cancel           cancel an AIO request
+io_destroy          destroy an AIO context
+io_pgetevents       reap AIO completions (signal mask)
+io_pgetevents_time64 reap AIO completions (32-bit time_t)
+
+## --- extended attributes: a read-only-root app sets no xattrs
+setxattr            set an extended attribute
+lsetxattr           set an xattr (no-follow)
+fsetxattr           set an xattr (fd)
+getxattr            read an extended attribute
+lgetxattr           read an xattr (no-follow)
+fgetxattr           read an xattr (fd)
+listxattr           list extended attributes
+llistxattr          list xattrs (no-follow)
+flistxattr          list xattrs (fd)
+removexattr         remove an extended attribute
+lremovexattr        remove an xattr (no-follow)
+fremovexattr        remove an xattr (fd)
+
+## --- ownership / mode mutation: a read-only-root app changes no permissions
+chmod               change file mode
+fchmod              change file mode (fd)
+fchmodat            change file mode (at)
+fchmodat2           change file mode (at, flags)
+chown               change owner
+chown32             change owner (32-bit ids)
+fchown              change owner (fd)
+fchown32            change owner (fd, 32-bit ids)
+lchown              change owner (no-follow)
+lchown32            change owner (no-follow, 32-bit ids)
+fchownat            change owner (at)
+
+## --- device-node and hard-link creation: not a floor need (symlink/mkdir/
+##     rename/unlink/truncate are kept)
+mknod               create a device/special node
+mknodat             create a device/special node (at)
+link                create a hard link
+linkat              create a hard link (at)
+
+## --- NUMA / memory-policy: not needed by app payloads
+mbind               set NUMA memory policy for a range
+set_mempolicy       set the process NUMA policy
+get_mempolicy       query the NUMA policy
+migrate_pages       migrate pages between NUMA nodes
+move_pages          move pages to NUMA nodes
+
+## --- exploit / anti-hardening primitives
+userfaultfd         userspace page-fault handling; classic exploit primitive
+memfd_create        anonymous in-memory file; fileless-payload staging, opt in
+memfd_secret        secret memory region; uncommon, opt in
+personality         change execution domain (can disable ASLR)
+uselib              load a shared library the ancient way; dead, attack surface
+
+## --- inotify: filesystem watching (config reload); a listener does not need it
+inotify_init        create an inotify instance
+inotify_init1       create an inotify instance (flags)
+inotify_add_watch   add an inotify watch
+inotify_rm_watch    remove an inotify watch
+
+## --- memory-lock DoS (mlock/munlock kept; lock-everything is the DoS)
+mlockall            lock all current/future pages
+munlockall          unlock all pages
+
+## --- scheduling / priority setters (the getters are kept; sched_setaffinity is
+##     kept for runtimes that pin threads)
+setpriority         raise/lower nice value
+nice                raise/lower nice value (legacy)
+ioprio_set          set I/O scheduling priority
+sched_setscheduler  change scheduling policy
+sched_setparam      change scheduling parameters
+sched_setattr       change scheduling attributes
+
+## --- legacy / info-leak / dead aliases
+syslog              read the kernel log ring buffer; info leak
+vm86                enter v8086 mode (x86 legacy)
+vm86old             enter v8086 mode (x86 legacy)
+sgetmask            get the signal mask (obsolete)
+ssetmask            set the signal mask (obsolete)
+bdflush             obsolete buffer-dirty flush control
+oldolduname         obsolete uname variant
+oldstat             obsolete stat variant
+oldlstat            obsolete lstat variant
+oldfstat            obsolete fstat variant
+olduname            obsolete uname variant
+
+## --- pidfd cross-process reach
+pidfd_open          obtain a pidfd for another process
+pidfd_send_signal   signal another process via pidfd
+process_mrelease    release the memory of a dying process
+
+## --- init-phase-provided: in linker_base/init_base, so granted during loading/
+##     init and revoked at main; these are startup/init concerns not re-issued by
+##     the workload at runtime, so they need not sit in the base (like mprotect).
+prctl               process-control setup (name/dumpable/MDWE) at init; not a runtime workload call
+prlimit64           resource limits read at init; apps rarely change limits at runtime
+set_tid_address     clear-child-tid registered once for the main thread at start
+set_robust_list     robust-futex list; glibc treats failure as best-effort (loses only robust-mutex auto-cleanup)
+sched_getscheduler  scheduling-policy query at init; not a runtime call
