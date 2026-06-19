@@ -1,0 +1,18 @@
+{
+	"_comment": "Container-exact seccomp profile: only this workload's measured runtime syscalls. The loader/init startup set (mprotect, brk, getrandom, ...) is supplied by ujail's linker/init phase bases and revoked at main, so it is not listed here. Derived by running the image under 'ujail -m complain' and collecting the app-phase syscalls; extend via CONTAINER_SECCOMP_ALLOW or by re-deriving if a code path is missed. defaultAction ERRNO: anything not listed returns EPERM.",
+	"defaultAction": "SCMP_ACT_ERRNO",
+	"syscalls": [
+		{
+			"names": [
+				"accept4", "arch_prctl", "bind", "clock_gettime", "clone",
+				"close", "epoll_create1", "epoll_ctl", "epoll_pwait", "exit",
+				"exit_group", "fcntl", "futex", "getrlimit", "getsockname",
+				"gettid", "listen", "madvise", "mmap", "nanosleep", "openat",
+				"pipe2", "read", "recvfrom", "rt_sigaction", "rt_sigprocmask",
+				"sched_getaffinity", "sched_yield", "sendto", "setrlimit",
+				"setsockopt", "sigaltstack", "socket", "uname", "write"
+			],
+			"action": "SCMP_ACT_ALLOW"
+		}
+	]
+}
