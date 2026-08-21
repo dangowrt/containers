@@ -132,6 +132,8 @@ cfg.process.capabilities = {
 };
 
 let want_ns = [ "pid", "mount", "ipc", "uts", "network", "user", "cgroup", "time" ];
+if (pol.net == "host")
+	want_ns = filter(want_ns, function(t) { return t != "network"; });
 cfg.linux.namespaces = cfg.linux.namespaces ?? [];
 let have_ns = {};
 for (let n in cfg.linux.namespaces)
@@ -376,6 +378,12 @@ if (pol.egress && pol.egress != "")
 	cfg.annotations["org.openwrt.network.egress"] = pol.egress;
 if (pol.ingress && pol.ingress != "")
 	cfg.annotations["org.openwrt.network.ingress"] = pol.ingress;
+if (pol.net_proto && pol.net_proto != "")
+	cfg.annotations["org.openwrt.network.proto"] = pol.net_proto;
+if (pol.net_proto6 && pol.net_proto6 != "")
+	cfg.annotations["org.openwrt.network.proto6"] = pol.net_proto6;
+if (pol.net_ip6ifaceid && pol.net_ip6ifaceid != "")
+	cfg.annotations["org.openwrt.network.ip6ifaceid"] = pol.net_ip6ifaceid;
 if (pol.netifd == "1")
 	cfg.annotations["org.openwrt.procd.netifd"] = "true";
 

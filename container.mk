@@ -115,13 +115,18 @@ CONTAINER_COMMAND ?=
 CONTAINER_PROVISION ?=
 
 # networking (uxc-net consumes these at runtime): attach none|bridged:<net>|routed|host,
-# egress/ingress zones for routed. netifd: an in-container netifd manages the
-# jail's network - brings the loopback up and applies the config uxc-net compiles.
-# This is the uxc default; opt out (0) only for podman-managed networking or a
-# full-OS container running its own init + network daemon.
+# egress/ingress zones for routed, net_proto/net_proto6/net_ip6ifaceid the
+# address protocols and IPv6 interface identifier for the compiled in-jail
+# config. netifd: an in-container netifd manages the jail's network - brings the
+# loopback up and applies the config uxc-net compiles. This is the uxc default;
+# opt out (0) only for podman-managed networking or a full-OS container running
+# its own init + network daemon.
 CONTAINER_NET ?= none
 CONTAINER_EGRESS ?=
 CONTAINER_INGRESS ?=
+CONTAINER_NET_PROTO ?=
+CONTAINER_NET_PROTO6 ?=
+CONTAINER_NET_IP6IFACEID ?=
 CONTAINER_NETIFD ?= 1
 
 # Project the enforced requirement surface to versioned apk tags, queryable from
@@ -255,6 +260,9 @@ define Build/Compile
 		echo "net=$(CONTAINER_NET)"; \
 		echo "egress=$(CONTAINER_EGRESS)"; \
 		echo "ingress=$(CONTAINER_INGRESS)"; \
+		echo "net_proto=$(CONTAINER_NET_PROTO)"; \
+		echo "net_proto6=$(CONTAINER_NET_PROTO6)"; \
+		echo "net_ip6ifaceid=$(CONTAINER_NET_IP6IFACEID)"; \
 		echo "netifd=$(CONTAINER_NETIFD)"; \
 	} > $(PKG_BUILD_DIR)/policy.kv
 	+UCODE="$(UCODE)" \
