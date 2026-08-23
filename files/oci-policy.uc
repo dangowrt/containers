@@ -337,6 +337,10 @@ for (let spec in split(pol.volumes ?? "", ",")) {
 		warn(sprintf("oci-policy: bad CONTAINER_VOLUMES entry '%s' (want id:mnt:size)\n", spec));
 		continue;
 	}
+	if (!match(f[0], /^[A-Za-z0-9_][A-Za-z0-9._-]*$/)) {
+		warn(sprintf("oci-policy: bad CONTAINER_VOLUMES id '%s'\n", f[0]));
+		continue;
+	}
 	for (let k in vorder)
 		if (volumes[k] && volumes[k].path == f[1] && k != f[0])
 			delete volumes[k];
